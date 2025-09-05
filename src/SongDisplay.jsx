@@ -1,3 +1,4 @@
+// SongDisplay.jsx
 import React, { useState, useEffect } from "react";
 import { transposeChord, getTransposedKey } from "./chords";
 
@@ -9,7 +10,7 @@ function SongDisplay({
   addToSongset,
   goBack,
   setMode,
-  compact = false, // optional: hide controls if compact
+  compact = false, // compact mode hides top controls
 }) {
   const [toastVisible, setToastVisible] = useState(false);
   const [internalMode, setInternalMode] = useState(mode);
@@ -22,7 +23,7 @@ function SongDisplay({
 
   const lines = (song.Lyrics || "").split("\n");
   const currentKey = getTransposedKey(song.Key, transpose);
-  const recommendedKey = song.Key; // original key
+  const recommendedKey = song.Key;
 
   const formatForCopy = () => {
     let text = `${song.Title}\nCurrent Key: ${currentKey}\n\n`;
@@ -67,6 +68,7 @@ function SongDisplay({
         }
       });
     }
+
     navigator.clipboard.writeText(text.trim());
     setToastVisible(true);
     setTimeout(() => setToastVisible(false), 2000);
@@ -75,7 +77,11 @@ function SongDisplay({
   const renderLineWithChords = (line, idx) => {
     const chordMatches = [...line.matchAll(/\[([^\]]+)\]/g)];
     if (chordMatches.length === 0)
-      return <div key={idx} style={{ color: "black" }}>{line}</div>;
+      return (
+        <div key={idx} style={{ color: "black" }}>
+          {line}
+        </div>
+      );
 
     let chordLine = "";
     let lyricLine = "";
@@ -184,7 +190,9 @@ function SongDisplay({
                 fontSize: "12px",
               }}
             >
-              {m === "lyricsChords" ? "Lyrics+Chords" : m.charAt(0).toUpperCase() + m.slice(1)}
+              {m === "lyricsChords"
+                ? "Lyrics+Chords"
+                : m.charAt(0).toUpperCase() + m.slice(1)}
             </button>
           ))}
         </div>
@@ -231,11 +239,19 @@ function SongDisplay({
               </div>
             );
           }
-          if (internalMode === "lyrics") return <div key={`lyrics-${idx}`}>{line.replace(/\[([^\]]+)\]/g, "")}</div>;
-          if (internalMode === "chords") {
-            const chords = [...line.matchAll(/\[([^\]]+)\]/g)].map((m) => transposeChord(m[1], transpose));
+          if (internalMode === "lyrics")
             return (
-              <div key={`chords-${idx}`} style={{ color: "#007FFF", fontFamily: "monospace" }}>
+              <div key={`lyrics-${idx}`}>{line.replace(/\[([^\]]+)\]/g, "")}</div>
+            );
+          if (internalMode === "chords") {
+            const chords = [...line.matchAll(/\[([^\]]+)\]/g)].map((m) =>
+              transposeChord(m[1], transpose)
+            );
+            return (
+              <div
+                key={`chords-${idx}`}
+                style={{ color: "#007FFF", fontFamily: "monospace" }}
+              >
                 {chords.join(" ")}
               </div>
             );

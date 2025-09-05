@@ -6,7 +6,8 @@ import FinaliseSongset from "./FinaliseSongset";
 import { getTransposedKey } from "./chords";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQf9C2feoWl7bwsdpSNgWVL3i8quBMV3m-ZxMBOUvw15FTb2skd2Xkr9hwqpxUSf9J5fCnxWSJf3D3l/pub?output=csv";
+const SHEET_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQf9C2feoWl7bwsdpSNgWVL3i8quBMV3m-ZxMBOUvw15FTb2skd2Xkr9hwqpxUSf9J5fCnxWSJf3D3l/pub?output=csv";
 
 function App() {
   const [songs, setSongs] = useState([]);
@@ -16,6 +17,9 @@ function App() {
   const [filter, setFilter] = useState("All");
   const [toast, setToast] = useState("");
   const [modalTransposeMap, setModalTransposeMap] = useState({});
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  const isMobile = windowWidth < 768;
 
   useEffect(() => {
     Papa.parse(SHEET_URL, {
@@ -32,6 +36,12 @@ function App() {
         setSongs([]);
       },
     });
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const showToast = (msg) => {
@@ -90,7 +100,9 @@ function App() {
   }
 
   const filteredSongs = songs
-    .filter((s) => (filter === "All" ? true : s.Category?.toLowerCase() === filter.toLowerCase()))
+    .filter((s) =>
+      filter === "All" ? true : s.Category?.toLowerCase() === filter.toLowerCase()
+    )
     .sort((a, b) => a.Title.localeCompare(b.Title));
 
   return (
@@ -101,15 +113,13 @@ function App() {
         background: "#000",
       }}
     >
-      {/* Centered main block (full height 16:9) */}
       <div
         style={{
-          width: "80vw",
-          height: "80vh", // taller for full viewport
+          width: isMobile ? "95vw" : "80vw",
+          height: isMobile ? "auto" : "80vh",
           maxWidth: "1400px",
-          maxHeight: "800px",
           margin: "24px auto",
-          display: "grid",
+          display: isMobile ? "block" : "grid",
           gridTemplateColumns: "2fr 1fr",
           gap: "20px",
           background: "#f0f0f0",
@@ -119,9 +129,15 @@ function App() {
           overflow: "hidden",
         }}
       >
-        {/* Left: Song Library */}
-        <div style={{ paddingRight: "10px", overflowY: "auto" }}>
-          <h1 style={{ fontSize: "28px", marginBottom: "12px", color: "black" }}>
+        {/* Song Library */}
+        <div style={{ paddingRight: isMobile ? "0" : "10px", overflowY: "auto" }}>
+          <h1
+            style={{
+              fontSize: "28px",
+              marginBottom: "12px",
+              color: "black",
+            }}
+          >
             Harvester Song Directory
           </h1>
           <div style={{ marginBottom: "16px" }}>
@@ -142,6 +158,7 @@ function App() {
               </button>
             ))}
           </div>
+
           <div style={{ display: "grid", gap: "10px" }}>
             {filteredSongs.map((song, idx) => (
               <div
@@ -193,108 +210,120 @@ function App() {
           </div>
         </div>
 
-        {/* Right: Songset Sidebar */}
-        <div
-          style={{
-            paddingLeft: "10px",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            justifyContent: "space-between", // pushes button to bottom
-            background: "#333",
-            borderRadius: "8px",
-          }}
-        >
-          <div>
-            <h2 style={{ marginBottom: "12px", color: "white" }}>Current Songset</h2>
-            <div style={{ flex: 1, overflowY: "auto", paddingRight: "6px" }}>
-              <DragDropContext onDragEnd={onDragEnd}>
-                <Droppable droppableId="songset">
-                  {(provided) => (
-                    <div {...provided.droppableProps} ref={provided.innerRef}>
-                      {songset.length === 0 ? (
-                        <div style={{ color: "#ffffffff", textAlign: "center", marginTop: "40px" }}>
-                          No songs added yet
-                        </div>
-                      ) : (
-                        songset.map((song, index) => (
-                          <Draggable
-                            key={`${song.Title}-${index}`}
-                            draggableId={`${song.Title}-${index}`}
-                            index={index}
-                          >
-                            {(provided) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  padding: "8px",
-                                  border: "1px solid #3b3b3bff",
-                                  borderRadius: "4px",
-                                  marginBottom: "8px",
-                                  background: "white",
-                                  color: "black",
-                                  ...provided.draggableProps.style,
-                                }}
-                              >
-                                <div>
-                                  <div style={{ fontWeight: "bold" }}>{song.Title}</div>
-                                  <div style={{ marginTop: "6px" }}>
-                                    Key: {getTransposedKey(song.Key, song.transpose)}
-                                  </div>
-                                </div>
-                                <div>
-                                  <button
-                                    onClick={() => removeFromSongset(index)}
-                                    style={{
-                                      padding: "4px 8px",
-                                      fontSize: "11px",
-                                      border: "1px solid red",
-                                      background: "white",
-                                      color: "red",
-                                      cursor: "pointer",
-                                    }}
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))
-                      )}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setFinalising(true)}
+        {/* Songset Sidebar (desktop only) */}
+        {!isMobile && (
+          <div
             style={{
-              marginTop: "12px",
-              marginBottom: "10px",
-              padding: "10px",
-              width: "97%",
-              maxWidth: "250px",
-              minWidth: "140px",
-              background: "#F0A500",
-              color: "black",
-              fontWeight: "bold",
-              cursor: "pointer",
-              border: "none",
-              boxSizing: "border-box",
+              paddingLeft: "10px",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              justifyContent: "space-between",
+              background: "#333",
+              borderRadius: "8px",
             }}
           >
-            Finalise Songset
-          </button>
-        </div>
+            <div>
+              <h2 style={{ marginBottom: "12px", color: "white" }}>
+                Current Songset
+              </h2>
+              <div style={{ flex: 1, overflowY: "auto", paddingRight: "6px" }}>
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="songset">
+                    {(provided) => (
+                      <div {...provided.droppableProps} ref={provided.innerRef}>
+                        {songset.length === 0 ? (
+                          <div
+                            style={{
+                              color: "#ffffffff",
+                              textAlign: "center",
+                              marginTop: "40px",
+                            }}
+                          >
+                            No songs added yet
+                          </div>
+                        ) : (
+                          songset.map((song, index) => (
+                            <Draggable
+                              key={`${song.Title}-${index}`}
+                              draggableId={`${song.Title}-${index}`}
+                              index={index}
+                            >
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    padding: "8px",
+                                    border: "1px solid #3b3b3bff",
+                                    borderRadius: "4px",
+                                    marginBottom: "8px",
+                                    background: "white",
+                                    color: "black",
+                                    ...provided.draggableProps.style,
+                                  }}
+                                >
+                                  <div>
+                                    <div style={{ fontWeight: "bold" }}>
+                                      {song.Title}
+                                    </div>
+                                    <div style={{ marginTop: "6px" }}>
+                                      Key: {getTransposedKey(song.Key, song.transpose)}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <button
+                                      onClick={() => removeFromSongset(index)}
+                                      style={{
+                                        padding: "4px 8px",
+                                        fontSize: "11px",
+                                        border: "1px solid red",
+                                        background: "white",
+                                        color: "red",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </Draggable>
+                          ))
+                        )}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setFinalising(true)}
+              style={{
+                marginTop: "12px",
+                marginBottom: "10px",
+                padding: "10px",
+                width: "97%",
+                maxWidth: "250px",
+                minWidth: "140px",
+                background: "#F0A500",
+                color: "black",
+                fontWeight: "bold",
+                cursor: "pointer",
+                border: "none",
+                boxSizing: "border-box",
+              }}
+            >
+              Finalise Songset
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Selected Song Modal */}
@@ -316,9 +345,9 @@ function App() {
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              width: "75vw", // taller modal
+              width: isMobile ? "95vw" : "75vw",
               maxWidth: "720px",
-              height: "90vh", // taller
+              height: isMobile ? "80vh" : "90vh",
               overflow: "auto",
               background: "white",
               padding: "20px",
